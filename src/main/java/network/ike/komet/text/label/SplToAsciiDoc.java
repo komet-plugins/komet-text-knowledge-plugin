@@ -19,7 +19,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -66,6 +68,28 @@ public final class SplToAsciiDoc {
     private static final Set<String> BLOCKS_IN_TEXT = Set.of("list", "table");
     private static final Pattern SPACES = Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
     private static final int DEEPEST_HEADING = 6;
+
+    /**
+     * Throws what the parser reports as an error, and prints nothing. A builder with no handler
+     * of its own prints each error to standard error before the parse fails, so a refused label
+     * would leave a line there as well as the exception.
+     */
+    private static final ErrorHandler THROW_ERRORS = new ErrorHandler() {
+        @Override
+        public void warning(SAXParseException exception) {
+            // A warning leaves the label readable.
+        }
+
+        @Override
+        public void error(SAXParseException exception) throws SAXException {
+            throw exception;
+        }
+
+        @Override
+        public void fatalError(SAXParseException exception) throws SAXException {
+            throw exception;
+        }
+    };
 
     private SplToAsciiDoc() {
     }
@@ -354,6 +378,7 @@ public final class SplToAsciiDoc {
             factory.setXIncludeAware(false);
             factory.setExpandEntityReferences(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
+            builder.setErrorHandler(THROW_ERRORS);
             return builder.parse(in);
         } catch (ParserConfigurationException | SAXException e) {
             throw new IOException("not a well-formed SPL document: " + e.getMessage(), e);

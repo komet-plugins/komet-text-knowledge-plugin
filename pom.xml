@@ -76,6 +76,10 @@
         <ike-starter-set.version>1-SNAPSHOT</ike-starter-set.version>
         <test.excludedGroups>external</test.excludedGroups>
         <tests.forkCount>0.5C</tests.forkCount>
+        <!-- The unit tests' JVM options, which ike-parent's surefire argLine takes in: JavaFX logs
+             through JUL, which goes to stderr unless log4j's JUL manager takes it, as it does in
+             the integration tests; the core adapter honors the JUnit provider's setLevel call. -->
+        <argLine>-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager -Dlog4j.jul.LoggerAdapter=org.apache.logging.log4j.jul.CoreLoggerAdapter</argLine>
         <java.version>27</java.version>
         <!-- The nid build check (tinkar-core nid-check, IKE-Network/ike-issues#1244). -->
         <nid-check.report>error</nid-check.report>
@@ -194,6 +198,12 @@
             <artifactId>test-logging</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- log4j's JUL manager, which the test JVMs install: JavaFX and Lucene log through JUL. -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-jul</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -262,7 +272,9 @@
             </plugin>
             <!-- Failsafe runs the *IT suite against a store holding the IKE starter set. Lucene
                  turns its Vector API code on only up to Java 26 and warns on 27; the property
-                 raises that limit. -->
+                 raises that limit. Lucene reports the Vector API through JUL, which log4j's JUL
+                 manager keeps off stderr; the core adapter honors the JUnit provider's
+                 Logger.setLevel call. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -285,6 +297,8 @@
                                 -Dorg.apache.lucene.vectorization.upperJavaFeatureVersion=27
                                 --enable-native-access=ALL-UNNAMED
                                 --sun-misc-unsafe-memory-access=allow
+                                -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager
+                                -Dlog4j.jul.LoggerAdapter=org.apache.logging.log4j.jul.CoreLoggerAdapter
                                 --add-opens java.base/java.lang=ALL-UNNAMED
                                 --add-opens java.base/java.util=ALL-UNNAMED
                                 --add-opens java.base/java.lang.reflect=ALL-UNNAMED

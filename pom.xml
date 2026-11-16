@@ -54,10 +54,33 @@
         </site>
     </distributionManagement>
 
+    <!-- Snapshots of the IKE starter set resolve through here on a machine whose settings
+         enable no snapshot repository, such as the test agent. -->
+    <repositories>
+        <repository>
+            <id>tinkar-nexus</id>
+            <url>https://nexus.tinkar.org/repository/ike-public/</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+
     <properties>
         <!-- Main-line Komet BOM; manages the tinkar-core and Lucene versions. Matches ike-komet-wsr. -->
         <komet-bom.version>3.0.12-SNAPSHOT</komet-bom.version>
+        <!-- The stamped document whose stored sentences are read (IKE-Network/ike-issues#1372). -->
+        <komet-stamped-document-plugin.version>1-SNAPSHOT</komet-stamped-document-plugin.version>
+        <!-- stamp-adoc-core (ike-issues#468); komet-desktop stages the same version into plugins/. -->
+        <stamp-adoc-core.version>1.3.0-SNAPSHOT</stamp-adoc-core.version>
+        <!-- The data the integration tests load. -->
+        <ike-starter-set.version>1-SNAPSHOT</ike-starter-set.version>
+        <test.excludedGroups>external</test.excludedGroups>
+        <tests.forkCount>0.5C</tests.forkCount>
         <java.version>27</java.version>
+        <!-- The nid build check (tinkar-core nid-check, IKE-Network/ike-issues#1244). -->
+        <nid-check.report>error</nid-check.report>
+        <nid-check.allow></nid-check.allow>
+        <javac.maxwarns>10000</javac.maxwarns>
     </properties>
 
     <dependencyManagement>
@@ -71,4 +94,215 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <dependencies>
+        <!-- Tinkar: entities, calculators and the kernel terms the descriptions are read by. -->
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>entity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>terms</artifactId>
+        </dependency>
+        <!-- Lucene: the analyzer chain and the synonym filter that matches descriptions in text.
+             Both managed by komet-bom. -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analysis-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <!-- The stamped document: its sentences as the store holds them, each named by its
+             sentence vertex, and the segment anchors a recognition is written as. -->
+        <dependency>
+            <groupId>network.ike.komet</groupId>
+            <artifactId>komet-stamped-document-plugin</artifactId>
+            <version>${komet-stamped-document-plugin.version}</version>
+        </dependency>
+        <!-- STAMP-in-git engine (module stamp.adoc.core): which files a repository's HEAD holds,
+             so the headless run materializes only committed files. -->
+        <dependency>
+            <groupId>design.knowledge.stamp</groupId>
+            <artifactId>stamp-adoc-core</artifactId>
+            <version>${stamp-adoc-core.version}</version>
+        </dependency>
+        <!-- The match table's block kind draws in the stamped document's Reading view: JavaFX, and
+             the Komet framework whose view properties its concept chips read. Both managed by
+             komet-bom and in Komet's boot image. -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.komet</groupId>
+            <artifactId>framework</artifactId>
+        </dependency>
+        <!-- The grow of a match table, to its card, the journal window and the whole screen
+             (KlExpandable); in the Komet runtime already. Version managed by komet-bom. -->
+        <dependency>
+            <groupId>dev.ikm.komet</groupId>
+            <artifactId>knowledge-layout</artifactId>
+        </dependency>
+
+        <!-- Tests: headless JavaFX (Monocle), JUnit, the memory-only store the integration tests
+             load the IKE starter set into, and the shared test logging configuration. The store
+             providers ship only module-info provides, so the class-path test run finds them
+             through META-INF/services in src/test/resources. -->
+        <dependency>
+            <groupId>one.jpro.platform.jpms</groupId>
+            <artifactId>openjfx-monocle</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>data-spinedarray64-provider</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>entity-provider</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>executor-provider</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>test-logging</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${test.excludedGroups}</excludedGroups>
+                    <forkCount>${tests.forkCount}</forkCount>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <parameters>true</parameters>
+                    <!-- The nid build check (tinkar-core nid-check, IKE-Network/ike-issues#1244). -->
+                    <compilerArgs combine.children="append">
+                        <arg>-Xplugin:NidCheck report=${nid-check.report} allow=${nid-check.allow}</arg>
+                        <arg>-Xmaxwarns</arg>
+                        <arg>${javac.maxwarns}</arg>
+                    </compilerArgs>
+                    <annotationProcessorPathsUseDepMgmt>true</annotationProcessorPathsUseDepMgmt>
+                    <annotationProcessorPaths combine.children="append">
+                        <path>
+                            <groupId>dev.ikm.tinkar</groupId>
+                            <artifactId>nid-check</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <!-- Copy the IKE starter set into target/data so the integration tests can load it
+                 into an ephemeral store, as the other Komet plugins do. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-starter-data</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>network.ike.foundation</groupId>
+                                    <artifactId>ike-starter-set</artifactId>
+                                    <version>${ike-starter-set.version}</version>
+                                    <classifier>reasoned-pb</classifier>
+                                    <type>zip</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/data</outputDirectory>
+                                    <destFileName>ike-starter-set-reasoned-pb.zip</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <stripVersion>true</stripVersion>
+                            <outputDirectory>${project.build.directory}/data</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>false</overWriteSnapshots>
+                            <overWriteIfNewer>true</overWriteIfNewer>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Failsafe runs the *IT suite against a store holding the IKE starter set. Lucene
+                 turns its Vector API code on only up to Java 26 and warns on 27; the property
+                 raises that limit. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <forkCount>${tests.forkCount}</forkCount>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludedGroups>${test.excludedGroups}</excludedGroups>
+                            <argLine>
+                                @{failsafeArgLine}
+                                --enable-preview
+                                --add-modules jdk.incubator.vector
+                                -Dorg.apache.lucene.vectorization.upperJavaFeatureVersion=27
+                                --enable-native-access=ALL-UNNAMED
+                                --sun-misc-unsafe-memory-access=allow
+                                --add-opens java.base/java.lang=ALL-UNNAMED
+                                --add-opens java.base/java.util=ALL-UNNAMED
+                                --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                                --add-opens java.base/java.io=ALL-UNNAMED
+                            </argLine>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>external</id>
+            <properties>
+                <test.excludedGroups/>
+            </properties>
+        </profile>
+    </profiles>
 </project>

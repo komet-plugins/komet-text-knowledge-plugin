@@ -51,10 +51,14 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -233,7 +237,9 @@ class StoredSentencesIT {
 
     @Test
     void theRunnerWritesAMatchTableAndARerunKeepsWhatWasJudged() throws Exception {
-        Path dir = repository("tables", "The visit was brief.");
+        // A second name in the note, so the run has a match left over once one is judged, whichever
+        // name of the knowledge base is the longest.
+        Path dir = repository("tables", "The clinician asked about " + anotherRegularName().text() + ".");
         GitDocumentMaterializer.Result before = GitDocumentMaterializer.materialize(dir, dir.resolve(FILE));
         StoredSentences stored = StoredSentences.read(before.anchor(), FILE).orElseThrow();
         AnchoredRecognition expected = recognitionOfNamed(stored);
@@ -361,6 +367,19 @@ class StoredSentencesIT {
     }
 
     /** The regular name with the most words, so the test names a concept by more than one word. */
+    /** A regular name of another concept that shares no word with the longest one, so the two are found apart. */
+    private Description anotherRegularName() {
+        Set<String> itsWords = new HashSet<>(Arrays.asList(named.text().toLowerCase(Locale.ROOT).split(" ")));
+        return descriptions.stream()
+                .filter(d -> d.kind() == DescriptionKind.REGULAR_NAME && !d.caseSignificant())
+                .filter(d -> d.conceptNid() != named.conceptNid())
+                .filter(d -> d.text().chars().allMatch(c -> Character.isLetter(c) || c == ' '))
+                .filter(d -> Arrays.stream(d.text().toLowerCase(Locale.ROOT).split(" ")).noneMatch(itsWords::contains))
+                .max(Comparator.comparingInt((Description d) -> d.text().split(" ").length)
+                        .thenComparing(Description::text))
+                .orElseThrow();
+    }
+
     private Description longestRegularName() {
         return descriptions.stream()
                 .filter(d -> d.kind() == DescriptionKind.REGULAR_NAME && !d.caseSignificant())
